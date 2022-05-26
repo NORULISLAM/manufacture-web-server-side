@@ -16,7 +16,18 @@ async function run() {
     try {
         await client.connect();
         const serviceCollection = client.db('car_solutions').collection('services');
+        const reviewCollection = client.db('car_solutions').collection('reviews');
+        const userCollection = client.db('car_solutions').collection('users');
 
+
+        //reviews
+        app.get('/review', async (req, res) => {
+            const query = {};
+            const cursor = reviewCollection.find(query);
+            const reviews = await cursor.toArray();
+            res.send(reviews);
+        })
+        //---
         app.get('/service', async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query);
@@ -29,6 +40,27 @@ async function run() {
             const service = await serviceCollection.findOne(query);
             res.send(service);
         });
+        //my order api 
+        app.get('/service', async (req, res) => {
+            const availableQuantity = req.query.availableQuantity;
+            const query = { availableQuantity: availableQuantity };
+            const cursor = serviceCollection.find(query);
+            const order = await cursor.toArray();
+            res.send(order);
+        })
+        //PUT User create
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+
+        })
 
     }
     finally {
