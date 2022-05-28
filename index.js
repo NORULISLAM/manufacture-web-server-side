@@ -114,13 +114,13 @@ async function run() {
             res.send(services);
         })
         //Manage Order Api
-        app.get('/users', async (req, res) => {
+        app.get('/user', async (req, res) => {
             const users = await userCollection.find().toArray();
             res.send(users);
         });
 
         //PUT User create
-        app.put('/users/:email', async (req, res) => {
+        app.put('/user/:email', async (req, res) => {
             const email = req.params.email;
             const user = req.body;
             const filter = { email: email };
@@ -135,7 +135,7 @@ async function run() {
         })
 
         //Delete user
-        app.delete('/users/:email', async (req, res) => {
+        app.delete('/user/:email', async (req, res) => {
             const email = req.params.email;
             const filter = { email: email };
             const result = await userCollection.deleteOne(filter);
