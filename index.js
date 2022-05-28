@@ -35,9 +35,10 @@ async function run() {
     try {
         await client.connect();
         const serviceCollection = client.db('car_solutions').collection('services');
-        const reviewCollection = client.db('car_solutions').collection('reviews');
+        const reviewCollection = client.db('car_solutions').collection('review');
         const userCollection = client.db('car_solutions').collection('users');
         const productCollection = client.db('car_solutions').collection('product');
+        const bookingCollection = client.db('car_solutions').collection('bookings');
 
 
 
@@ -63,12 +64,19 @@ async function run() {
             const reviews = await cursor.toArray();
             res.send(reviews);
         })
+        //POST
+        app.post('/review', async (req, res) => {
+            const newReview = req.body;
+            const result = await reviewCollection.insertOne(newReview);
+            res.send(result);
+        });
         //---
         app.get('/service', async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query);
             const services = await cursor.toArray();
             res.send(services);
+
         })
         app.get('/service/:id', async (req, res) => {
             const id = req.params.id;
@@ -85,6 +93,26 @@ async function run() {
             res.send(order);
         });
 
+
+        app.get('/available', async (req, res) => {
+            const availableQuantity = req.query.availableQuantity;
+
+
+            const services = await serviceCollection.find().toArray();
+
+            const query = { availableQuantity: availableQuantity };
+            const bookings = await bookingCollection.find(query).toArray();
+
+            services.forEach(service => {
+                const serviceBookings = bookings.filter(book => book.treatment === service.name);
+                const bookedSlots = serviceBookings.map(book => book.slot);
+                const available = service.slots.filter(slot => !bookedSlots.includes(slot));
+                service.slots = available;
+            });
+
+
+            res.send(services);
+        })
         //Manage Order Api
         app.get('/user', async (req, res) => {
             const users = await userCollection.find().toArray();
@@ -108,7 +136,7 @@ async function run() {
 
 
         //New user admin Add
-        app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+        app.put('/user/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
             const email = req.params.email;
             const requester = req.decoded.email;
             const requesterAccount = await userCollection.findOne({ email: requester });
@@ -156,7 +184,32 @@ async function run() {
             res.send(result);
         })
 
+        //// purches booking
+        app.get('/booking', async (req, res) => {
+            const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            if (email === decodedEmail) {
+                const query = { email: email };
+                const bookings = await bookingCollection.find(query).toArray();
+                return res.send(bookings);
+            }
+            else {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+        })
 
+        app.post('/booking', async (req, res) => {
+            const booking = req.body;
+            const query = { service: booking.email, email: booking.email }
+            const exists = await bookingCollection.findOne(query);
+            if (exists) {
+                return res.send({ success: false, booking: exists })
+            }
+            const result = await bookingCollection.insertOne(booking);
+            console.log('sending email');
+            sendAppointmentEmail(booking);
+            return res.send({ success: true, result });
+        });
 
     }
     finally {
