@@ -138,18 +138,18 @@ async function run() {
 
         //product send and get api database
 
-        app.get('/product', verifyJWT, async (req, res) => {
+        app.get('/product', async (req, res) => {
             const product = await productCollection.find().toArray();
             res.send(product);
         })
 
-        app.post('/product', verifyJWT, verifyAdmin, async (req, res) => {
+        app.post('/product', async (req, res) => {
             const product = req.body;
             const result = await productCollection.insertOne(product);
             res.send(result);
         });
 
-        app.delete('/product/:email', verifyJWT, verifyAdmin, async (req, res) => {
+        app.delete('/product/:email', async (req, res) => {
             const email = req.params.email;
             const filter = { email: email };
             const result = await productCollection.deleteOne(filter);
